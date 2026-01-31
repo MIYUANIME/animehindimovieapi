@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "functions": {
+    "api/api4/index.js": {
+      "includeFiles": "api/api4/data/movies/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api4",
+      "destination": "/api/api4/index.js"
+    },
+    {
+      "source": "/api/proxy",
+      "destination": "/api/proxy.js"
+    }
+  ]
+}
