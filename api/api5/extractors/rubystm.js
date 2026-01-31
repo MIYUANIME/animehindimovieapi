@@ -12,6 +12,8 @@ function getRandomUserAgent() {
 function normalizeHtml(html) {
     if (!html) return '';
     return html
+        .replace(/\\x([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+        .replace(/\\u([0-9A-Fa-f]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
         .replace(/\\u002F/g, '/')
         .replace(/\\\//g, '/')
         .replace(/&amp;/g, '&')
@@ -104,12 +106,21 @@ function getOrigin(url) {
     }
 }
 
+function extractCookieHeader(setCookie) {
+    if (!setCookie) return null;
+    const items = Array.isArray(setCookie) ? setCookie : [setCookie];
+    const cookies = items.map((entry) => String(entry).split(';')[0]).filter(Boolean);
+    return cookies.length ? cookies.join('; ') : null;
+}
+
 export async function extractFromRubystm(playerUrl) {
     try {
         const userAgent = getRandomUserAgent();
         const headers = {
             'User-Agent': userAgent,
-            'Referer': playerUrl
+            'Referer': playerUrl,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9'
         };
 
         const response = await axios.get(playerUrl, {
@@ -122,6 +133,7 @@ export async function extractFromRubystm(playerUrl) {
         const finalUrl = response?.request?.res?.responseUrl || playerUrl;
         const origin = getOrigin(finalUrl) || getOrigin(playerUrl);
         if (!origin) return null;
+        const cookieHeader = extractCookieHeader(response.headers?.['set-cookie']);
 
         const directCandidates = extractM3u8Urls(html, origin);
         if (directCandidates.length > 0) {
@@ -148,7 +160,10 @@ export async function extractFromRubystm(playerUrl) {
                     'User-Agent': userAgent,
                     'Referer': playerUrl,
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'Origin': origin
+                    'Origin': origin,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    ...(cookieHeader ? { 'Cookie': cookieHeader } : {})
                 },
                 timeout: 8000,
                 maxRedirects: 5
