@@ -11,6 +11,10 @@
       "destination": "/api/api4/index.js"
     },
     {
+      "source": "/api5",
+      "destination": "/api/api5/index.js"
+    },
+    {
       "source": "/api/proxy",
       "destination": "/api/proxy.js"
     }

@@ -8,6 +8,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api5"
+  to = "/.netlify/functions/api5"
+  status = 200
+
+[[redirects]]
   from = "/api/proxy"
   to = "/.netlify/functions/proxy"
   status = 200
