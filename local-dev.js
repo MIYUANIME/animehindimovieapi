@@ -62,6 +62,11 @@ const server = http.createServer(async (req, res) => {
         return handler(req, res);
     }
 
+    if (url.pathname === '/api5') {
+        const { default: handler } = await import('./api/api5/index.js');
+        return handler(req, res);
+    }
+
     if (url.pathname === '/api/proxy') {
         const { default: handler } = await import('./api/proxy.js');
         return handler(req, res);

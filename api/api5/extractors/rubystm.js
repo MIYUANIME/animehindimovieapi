@@ -87,13 +87,21 @@ function unpackPackedScript(html) {
     const base = parseInt(match[2], 10);
     const count = parseInt(match[3], 10);
     const dict = match[4].replace(/\\'/g, "'").replace(/\\\\/g, "\\");
-    if (!base || !count || !dict) return null;
+    if (!base || !count || !dict || count > 5000) return null;
     return unpackPacker(payload, base, count, dict);
 }
 
 function extractRubystmCode(playerUrl) {
     const match = playerUrl.match(/\/(?:e|d|v|embed)\/([a-zA-Z0-9]+)/);
     return match ? match[1] : null;
+}
+
+function getOrigin(url) {
+    try {
+        return new URL(url).origin;
+    } catch {
+        return null;
+    }
 }
 
 export async function extractFromRubystm(playerUrl) {
@@ -106,13 +114,14 @@ export async function extractFromRubystm(playerUrl) {
 
         const response = await axios.get(playerUrl, {
             headers,
-            timeout: 10000,
+            timeout: 8000,
             maxRedirects: 5
         });
 
         const html = response.data;
         const finalUrl = response?.request?.res?.responseUrl || playerUrl;
-        const origin = new URL(finalUrl).origin;
+        const origin = getOrigin(finalUrl) || getOrigin(playerUrl);
+        if (!origin) return null;
 
         const directCandidates = extractM3u8Urls(html, origin);
         if (directCandidates.length > 0) {
@@ -138,9 +147,10 @@ export async function extractFromRubystm(playerUrl) {
                 headers: {
                     'User-Agent': userAgent,
                     'Referer': playerUrl,
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Origin': origin
                 },
-                timeout: 10000,
+                timeout: 8000,
                 maxRedirects: 5
             });
 

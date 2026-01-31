@@ -8,9 +8,19 @@ function buildToonstreamUrl({ id, type, season, episode }) {
     return `https://toonstream.world/movies/${id}/`;
 }
 
+function normalizeHtml(html) {
+    if (!html) return '';
+    return html
+        .replace(/\\u002F/g, '/')
+        .replace(/\\\//g, '/')
+        .replace(/&amp;/g, '&')
+        .replace(/\\u0026/g, '&');
+}
+
 function findRubystmUrl(html) {
+    const normalized = normalizeHtml(html);
     const regex = /https:\/\/rubystm\.com\/(?:e|embed|d|v)\/[a-zA-Z0-9]+[^\s"'<>]*/g;
-    const matches = html.match(regex) || [];
+    const matches = normalized.match(regex) || [];
     return matches.length > 0 ? matches[0] : null;
 }
 
@@ -28,7 +38,8 @@ export default async function handler(req, res) {
         return res.status(405).json({ status: 'error', message: 'Method not allowed. Use GET.' });
     }
 
-    const { id, type, season, episode } = req.query;
+    const query = req.query || {};
+    const { id, type, season, episode } = query;
 
     if (!id || !type) {
         return res.status(400).json({
@@ -58,7 +69,7 @@ export default async function handler(req, res) {
         const toonUrl = buildToonstreamUrl({ id, type, season, episode });
         const response = await axios.get(toonUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-            timeout: 15000
+            timeout: 8000
         });
 
         const html = response.data || '';
@@ -81,7 +92,9 @@ export default async function handler(req, res) {
             });
         }
 
-        const baseUrl = `https://${req.headers.host}`;
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
+        const baseUrl = `${protocol}://${host}`;
         const proxyUrl = `${baseUrl}/api/proxy?url=${encodeURIComponent(rubystmData.streamUrl)}&referer=${encodeURIComponent(rubystmData.headers?.Referer || rubystmUrl)}`;
 
         return res.status(200).json({
